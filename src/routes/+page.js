@@ -1,6 +1,7 @@
-/** @type {import('./$types').PageLoad} */
 export async function load() {
-    return {};
-};
+	// const username = localStorage.getItem('username');
+	// if (!username) return;
+	// return username;
+}
 
 export const prerender = true;
