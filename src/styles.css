@@ -1,0 +1,16 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Runescape', sans-serif;
+}
+
+@font-face {
+    font-family: 'Runescape';
+    src: url('/fonts/runescape.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
