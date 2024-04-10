@@ -1,16 +1,14 @@
 <script>
-    export let points = 99;
-    export let maxPoints = 100;
+    export let currentHealth = 99;
+    export let maxHealth = 100;
 
-    $: red = (1 - (points / maxPoints)) * 255;
-    $: green = (points / maxPoints) * 255;
-
-
+    $: red = (1 - (currentHealth / maxHealth)) * 255;
+    $: green = (currentHealth / maxHealth) * 255;
 </script>
 
 <div class='frame'>
-	<img class='points-image' src="Point Counter.png" alt='points' />
-    <span class='points-value' style='color: rgb({red}, {green}, 0);'>{points}</span>
+	<img class='points-image' src="images/interface/Point Counter.png" alt='points' />
+    <span class='points-value' style='color: rgb({red}, {green}, 0);'>{currentHealth}</span>
 </div>
 
 <style>
