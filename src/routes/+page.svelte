@@ -3,6 +3,7 @@
 	import tourneyDataDefault from '$lib/tourneyData.json';
 	import { onMount } from 'svelte';
 	import Healthbar from '../lib/components/Healthbar.svelte';
+    // import {image} from '/images/Zuk.png';
 
 	let tourneyData;
 
@@ -87,7 +88,7 @@
 	}
 </script>
 
-<div class="frame">
+<div class="frame" style="background-image: url('images/Zuk.png')">
 	{#if tourneyData}
 		<!-- TEAMS -->
 		<div class="teams">
@@ -139,7 +140,7 @@
 		flex-direction: column;
 		/* background-color: darkolivegreen; */
 		/* background-image: url('images/Inferno.png'); */
-		background-image: url('images/Zuk.png');
+		/* background-image: url('images/Zuk.png'); */
         background-size: cover;
         background-position: 50% 50%;
 		/* animation: flow 5s linear infinite; */
