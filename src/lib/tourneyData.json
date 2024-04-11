@@ -2,7 +2,8 @@
 	"organizer": "Fensail",
 	"event-name": "DEEZ NUTZ",
 	"rules": {
-		"point-decrement": 1
+		"decrement": 1,
+		"maxDecrement": 2
 	},
 	"teams": [
 		{
@@ -25,170 +26,199 @@
 	"challenges": [
 		{
 			"name": "Zalcano Unique",
+			"type": "main",
 			"value": 3,
-			"completed": [],
+			"completed": ["Red N White", "Frog Bois", "Drainor Drunkards", "Misthalin Mages"],
 			"icon": "Zalcano.png"
 		},
 		{
 			"name": "Blood Shard",
+			"type": "main",
 			"value": 3,
 			"completed": [],
 			"icon": "Blood Shard.png"
 		},
 		{
 			"name": "Full Godsword",
+			"type": "main",
 			"value": 3,
 			"completed": [],
 			"icon": "Sgs.png"
 		},
 		{
 			"name": "1 LMS Win",
+			"type": "main",
 			"value": 3,
 			"completed": [],
 			"icon": "Last Man Standing.png"
 		},
 		{
 			"name": "1 Nex Drop",
+			"type": "main",
 			"value": 3,
 			"completed": [],
 			"icon": "Nex.png"
 		},
 		{
 			"name": "Perilous Moons Full Set",
+			"type": "main",
 			"value": 3,
 			"completed": [],
 			"icon": "Blood Moon Armor.png"
 		},
 		{
 			"name": "Gm Speed for Any DT2 Boss",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "The Leviathan.png"
 		},
 		{
 			"name": "Raids Kits or Dust",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "Dust.png"
 		},
 		{
 			"name": "3 Cox Purples",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "Ancestral.png"
 		},
 		{
 			"name": "Dagon'hai or Elder Chaos Piece",
+			"type": "main",
 			"value": 4,
 			"completed": [],
 			"icon": "Mishkal.png"
 		},
 		{
 			"name": "Holy Elixir",
+			"type": "main",
 			"value": 4,
 			"completed": [],
 			"icon": "Holy Elixir.png"
 		},
 		{
 			"name": "Any Virtus Piece",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "Virtus Mask.png"
 		},
 		{
 			"name": "3 Toa Purples",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "3 Toa Purples.png"
 		},
 		{
 			"name": "Nightmare Unique",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "Nightmare.png"
 		},
 		{
 			"name": "Zulrah Unique",
+			"type": "main",
 			"value": 3,
 			"completed": [],
 			"icon": "Zulrah.png"
 		},
 		{
 			"name": "Wilderness Ring",
+			"type": "main",
 			"value": 4,
 			"completed": [],
 			"icon": "Wildy Ring.png"
 		},
 		{
 			"name": "Infernal Cape",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "Infernal Cape.png"
 		},
 		{
 			"name": "3 Tob Purples",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "3 Tob Purples.png"
 		},
 		{
 			"name": "3 Venator Shards",
+			"type": "main",
 			"value": 5,
 			"completed": [],
 			"icon": "Venator Shard.png"
 		},
 		{
 			"name": "GoTR Unique",
+			"type": "main",
 			"value": 3,
 			"completed": [],
 			"icon": "Gotr.png"
 		},
 		{
 			"name": "Obtain New Skillcape",
+			"type": "main",
 			"value": 4,
 			"completed": [],
 			"icon": "Skill.png"
 		},
 		{
 			"name": "Clue Value Over 1M",
+			"type": "main",
 			"value": 4,
 			"completed": [],
 			"icon": "Clue.png"
 		},
 		{
 			"name": "Slayer Helm Recolor",
+			"type": "main",
 			"value": 3,
 			"completed": [],
 			"icon": "Slayer.png"
 		},
 		{
 			"name": "Gauntlet Unique",
+			"type": "main",
 			"value": 4,
 			"completed": [],
 			"icon": "Gaunt.png"
 		},
 		{
 			"name": "Barrows Legs",
+			"type": "main",
 			"value": 4,
 			"completed": [],
 			"icon": "Skirt.png"
-		}
-	],
-	"bonus-challenges": [
+		},
 		{
 			"name": "PvM Pet",
+			"type": "bonus",
 			"value": 5,
-			"completed": []
+			"completed": [],
+			"icon": "Olmlet.png"
 		},
 		{
 			"name": "Raids Megarare",
+			"type": "bonus",
 			"value": 5,
-			"completed": []
+			"completed": [],
+			"icon": "Shadow.png"
 		},
 		{
 			"name": "Skilling Pet",
+			"type": "bonus",
 			"value": 5,
-			"completed": []
+			"completed": [],
+			"icon": "Beaver.png"
 		}
 	],
 	"messages": [

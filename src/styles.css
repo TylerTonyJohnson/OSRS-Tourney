@@ -14,3 +14,10 @@ body {
     font-weight: normal;
     font-style: normal;
 }
+
+@font-face {
+    font-family: 'Earth Theory';
+    src: url('/fonts/EarthTheory.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
