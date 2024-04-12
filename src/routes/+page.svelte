@@ -22,9 +22,13 @@
 		subscribeToChallenges();
 		subscribeToMessages();
 
-		getTeamData();
-		getChallengeData();
-		getMessageData();
+		await Promise.all([getTeamData(), getChallengeData(), getMessageData()]);
+
+		console.log('challenges', $challenges);
+
+		// getTeamData();
+		// getChallengeData();
+		// getMessageData();
 
 		styleScrollbar();
 
@@ -299,9 +303,8 @@
 </script>
 
 <div
-	class="frame"
-	style="background-image: url('images/Wide Background.jpg');
-		cursor: url('images/interface/Scimitar.png'), auto;"
+	class="frame" 	style="background-image: url('images/Wide Background.jpg');
+	cursor: url('images/interface/Scimitar.png'), auto;"
 >
 	{#if $teams && $challenges && $messages}
 		<!-- TITLE -->
@@ -314,7 +317,7 @@
 		</div>
 
 		<!-- TEAMS -->
-		<div class="teams">
+		<div class="teams" >
 			<div class="label">TEAMS</div>
 			{#each $teams as team}
 				{@const currentHealth = $challenges
