@@ -125,20 +125,20 @@
 							break;
 						case 'UPDATE':
 							// console.log('payload', payload);
+							getChallengeData();
+							// const change = $challenges.find((challenge) => challenge.id === payload.new.id).completed.length - payload.new.completed.length;
 
-							const change = $challenges.find((challenge) => challenge.id === payload.new.id).completed.length - payload.new.completed.length;
-
-							console.log(change);
-							switch (change) {
-								case -1:
-									$challenges.find((challenge) => challenge.id === payload.new.id).completed.push(payload.new.completed[payload.new.completed.length - 1]);
-									break;
-								case 1:
-									$challenges.find((challenge) => challenge.id === payload.new.id).completed.pop();
-									break;
-							}
-							$challenges = [...$challenges];
-							break;
+							// console.log(change);
+							// switch (change) {
+							// 	case -1:
+							// 		$challenges.find((challenge) => challenge.id === payload.new.id).completed.push(payload.new.completed[payload.new.completed.length - 1]);
+							// 		break;
+							// 	case 1:
+							// 		$challenges.find((challenge) => challenge.id === payload.new.id).completed.pop();
+							// 		break;
+							// }
+							// $challenges = [...$challenges];
+							// break;
 					}
 				}
 			)
