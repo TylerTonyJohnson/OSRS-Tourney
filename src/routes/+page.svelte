@@ -1,9 +1,10 @@
 <script>
 	import '../styles.css';
 	import { onMount } from 'svelte';
+	import { supabase } from '$lib/supabaseClient.js';
 	import tourneyDataDefault from '$lib/tourneyData.json';
 	import Healthbar from '../lib/components/Healthbar.svelte';
-	import { teams, challenges, messages } from '$lib/stores.js';
+	import { tournament, teams, challenges, messages, selectedTeam } from '$lib/stores.js';
 
 	let tourneyData;
 
@@ -11,16 +12,25 @@
 	const maxDecrement = 2;
 
 	$: maxHealth = $challenges.reduce((sum, currentChallenge) => {
-		return sum + currentChallenge.value;
+		return sum + currentChallenge.points;
 	}, 0);
 
-	let selectedTeam;
+	// let selectedTeam;
 
-	onMount(() => {
-		load();
+	onMount(async () => {
+		subscribeToTeams();
+		subscribeToChallenges();
+		subscribeToMessages();
 
-		selectedTeam = $teams[0];
+		getTeamData(); 
+		getChallengeData();
+		getMessageData();
+
 		styleScrollbar();
+
+		if ($teams.length > 0) {
+			$selectedTeam = $teams[0];
+		}
 	});
 
 	function styleScrollbar() {
@@ -68,55 +78,206 @@
 		document.head.appendChild(style);
 	}
 
-	function load() {
-		const localData = JSON.parse(localStorage.getItem('OSRS-Tourney-Data'));
-		if (localData) {
-			tourneyData = localData;
+	function subscribeToTeams() {
+		const subscription = supabase
+			.channel('teams_channel')
+			.on(
+				'postgres_changes',
+				{
+					event: '*',
+					schema: 'public',
+					table: 'teams'
+				},
+				(payload) => {
+					switch (payload.eventType) {
+						case 'INSERT':
+							console.log('new', payload.new);
+							$teams = [...$teams, payload.new];
+							break;
+						case 'DELETE':
+							console.log('old', payload.old);
+							$teams = $teams.filter((journalData) => journalData.id !== payload.old.id);
+							break;
+					}
+				}
+			)
+			.subscribe();
+	}
+	function subscribeToChallenges() {
+		const subscription = supabase
+			.channel('challenges_channel')
+			.on(
+				'postgres_changes',
+				{
+					event: '*',
+					schema: 'public',
+					table: 'challenges'
+				},
+				(payload) => {
+					switch (payload.eventType) {
+						case 'INSERT':
+							console.log('new', payload.new);
+							$challenges = [...$challenges, payload.new];
+							break;
+						case 'DELETE':
+							console.log('old', payload.old);
+							$challenges = $challenges.filter((journalData) => journalData.id !== payload.old.id);
+							break;
+						case 'UPDATE':
+							// console.log('payload', payload);
+
+							const change = $challenges.find((challenge) => challenge.id === payload.new.id).completed.length - payload.new.completed.length;
+
+							console.log(change);
+							switch (change) {
+								case -1:
+									$challenges.find((challenge) => challenge.id === payload.new.id).completed.push(payload.new.completed[payload.new.completed.length - 1]);
+									break;
+								case 1:
+									$challenges.find((challenge) => challenge.id === payload.new.id).completed.pop();
+									break;
+							}
+							$challenges = [...$challenges];
+							break;
+					}
+				}
+			)
+			.subscribe();
+	}
+	function subscribeToMessages() {
+		const subscription = supabase
+			.channel('messages_channel')
+			.on(
+				'postgres_changes',
+				{
+					event: '*',
+					schema: 'public',
+					table: 'messages'
+				},
+				(payload) => {
+					switch (payload.eventType) {
+						case 'INSERT':
+							console.log('new', payload.new);
+							$messages = [...$messages, payload.new];
+							break;
+						case 'DELETE':
+							console.log('old', payload.old);
+							$messages = $messages.filter((journalData) => journalData.id !== payload.old.id);
+							break;
+					}
+				}
+			)
+			.subscribe();
+	}
+
+	async function getTeamData() {
+		// Get Journals
+		const { data, error } = await supabase.from('teams').select('*').eq('tournament', $tournament);
+		if (error) {
+			console.error('Error fetching teams', error);
+			return {
+				status: 500,
+				error: 'Could not fetch teams'
+			};
 		} else {
-			tourneyData = tourneyDataDefault;
+			// console.log('teams', data);
 		}
-
-		$teams = tourneyData.teams;
-		$challenges = tourneyData.challenges;
-		$messages = tourneyData.messages;
+		$teams = data ?? [];
 	}
 
-	function save() {
-		const saveData = JSON.stringify(tourneyData);
-		localStorage.setItem('OSRS-Tourney-Data', saveData);
+	async function getChallengeData() {
+		// Get Journals
+		const { data, error } = await supabase
+			.from('challenges')
+			.select('*')
+			.eq('tournament', $tournament);
+		if (error) {
+			console.error('Error fetching challenges', error);
+			return {
+				status: 500,
+				error: 'Could not fetch challenges'
+			};
+		} else {
+			// console.log('challenges', data);
+		}
+		$challenges = data ?? [];
 	}
 
-	function reset() {
-		tourneyData = tourneyDataDefault;
+	async function getMessageData() {
+		// Get Journals
+		const { data, error } = await supabase
+			.from('messages')
+			.select('*')
+			.eq('tournament', $tournament);
+		if (error) {
+			console.error('Error fetching messages', error);
+			return {
+				status: 500,
+				error: 'Could not fetch messages'
+			};
+		} else {
+			// console.log('messages', data);
+		}
+		$messages = data ?? [];
 	}
 
 	function selectTeam(team) {
-		if (selectedTeam !== team) selectedTeam = team;
+		if ($selectedTeam !== team) $selectedTeam = team;
 	}
 
 	function updateChallenge(challenge) {
 		const message = {
 			type: 'notification',
-			text: `Clan ${selectedTeam.name} completed the challenge ${challenge.name}`
+			text: `Clan ${$selectedTeam.name} completed the challenge ${challenge.name}`
 		};
 
-		if (challenge.completed.includes(selectedTeam.name)) {
-			removeCompletedTeam(challenge, selectedTeam.name);
+		console.log(challenge.completed);
+
+		if (challenge.completed.includes($selectedTeam.id)) {
+			removeCompletedTeam(challenge, $selectedTeam);
 			removeMessage(message);
 		} else {
-			addCompletedTeam(challenge, selectedTeam.name);
+			addCompletedTeam(challenge, $selectedTeam);
 			addMessage(message);
 		}
 	}
 
-	function addCompletedTeam(challenge, teamName) {
-		challenge.completed.push(teamName);
-		$challenges = [...$challenges];
+	async function addCompletedTeam(challenge, team) {
+		console.log('adding team');
+		// console.log(challenge, team);
+		const { error } = await supabase
+			.from('challenges')
+			.update({
+				completed: [...challenge.completed, team.id]
+			})
+			.eq('id', challenge.id);
+
+		if (error) {
+			console.error('Error updating challenge', error);
+			return {
+				status: 500,
+				error: 'Could not update challenge'
+			};
+		}
 	}
 
-	function removeCompletedTeam(challenge, teamName) {
-		challenge.completed.splice(challenge.completed.indexOf(teamName), 1);
-		$challenges = [...$challenges];
+	async function removeCompletedTeam(challenge, team) {
+		console.log('removing team');
+		// console.log(challenge, team);
+		const { error } = await supabase.from('challenges').update({
+			completed: challenge.completed.splice(challenge.completed.indexOf(team.id), 1)
+		});
+
+		if (error) {
+			console.error('Error updating challenge', error);
+			return {
+				status: 500,
+				error: 'Could not update challenge'
+			};
+		}
+
+		// challenge.completed.splice(challenge.completed.indexOf(team), 1);
+		// $challenges = [...$challenges];
 	}
 
 	function addMessage(message) {
@@ -129,8 +290,12 @@
 	}
 </script>
 
-<div class="frame" style="background-image: url('images/Zuk.png')">
-	{#if tourneyData}
+<div
+	class="frame"
+	style="background-image: url('images/Wide Background.jpg');
+		cursor: url('images/interface/Scimitar.png'), auto;"
+>
+	{#if $teams && $challenges && $messages}
 		<!-- TITLE -->
 		<h1 class="title">OSRS Tourney</h1>
 
@@ -149,11 +314,11 @@
 					.reduce(
 						(sum, challenge) =>
 							sum +
-							challenge.value -
+							challenge.points -
 							Math.min(challenge.completed.indexOf(team.name), maxDecrement),
 						0
 					)}
-				<div class="team" class:selected={team === selectedTeam} on:click={() => selectTeam(team)}>
+				<div class="team" class:selected={team === $selectedTeam} on:click={() => selectTeam(team)}>
 					<img class="hat" src="images/{team.icon}" />
 					<Healthbar {maxHealth} {currentHealth} />
 					<div class="name">{team.name}</div>
@@ -166,14 +331,14 @@
 			<div class="challenges">
 				{#each $challenges.filter((challenge) => challenge.type === 'main') as challenge}
 					{@const points =
-						challenge.value - Math.min(challenge.completed.length, maxDecrement) * decrement}
+						challenge.points - Math.min(challenge.completed.length, maxDecrement) * decrement}
 					<div class="challenge" on:click={() => updateChallenge(challenge)}>
-						<img class="challenge-icon" src="images/challenge-icons/{challenge.icon}" />
+						<img class="challenge-icon" src="images/challenge-icons/{challenge.name}.png" />
 						<div class="name">{challenge.name}</div>
 						<div class="points">{points}</div>
 						<div class="completed-teams">
-							{#each challenge.completed as teamName}
-								{@const icon = $teams.find((team) => team.name === teamName).icon}
+							{#each challenge.completed as teamId}
+								{@const icon = $teams.find((team) => team.id === teamId).icon}
 								<div class="completed-team">
 									<img class="team-icon" src="images/{icon}" />
 								</div>
@@ -188,9 +353,9 @@
 			<div class="bonus-challenges">
 				{#each $challenges.filter((challenge) => challenge.type === 'bonus') as challenge}
 					<div class="challenge" on:click={() => updateChallenge(challenge)}>
-						<img class="challenge-icon" src="images/challenge-icons/{challenge.icon}" />
+						<img class="challenge-icon" src="images/challenge-icons/{challenge.name}.png" />
 						<div class="name">{challenge.name}</div>
-						<div class="points">{challenge.value}</div>
+						<div class="points">{challenge.points}</div>
 						<div class="completed-teams">
 							{#each challenge.completed as teamName}
 								{@const icon = $teams.find((team) => team.name === teamName).icon}
@@ -219,18 +384,20 @@
 				<div class="input"></div>
 			</div>
 			<div class="button-container">
-				<button class="save" on:click={save}>SAVE</button>
-				<button class="reset" on:click={reset}>RESET</button>
+				<!-- <button class="save" on:click={save}>SAVE</button>
+				<button class="reset" on:click={reset}>RESET</button> -->
 			</div>
 		</div>
+	{:else}
+		<div class="loading">Loading...</div>
 	{/if}
 </div>
 
 <style>
 	.frame {
 		/* position: fixed; */
-		/* max-width: 100vw;
-		height: 100vh; */
+		/* max-width: 100vw; */
+		height: 100vh;
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
 		grid-template-rows: auto auto 1fr;
@@ -245,7 +412,8 @@
 		/* background-image: url('images/Zuk.png'); */
 		background-size: cover;
 		/* background-repeat: repeat; */
-		background-position: 50% 50%;
+		/* background-position: 50% 50%; */
+		background-position: -15rem;
 		/* animation: flow 5s linear infinite; */
 		padding: 1rem;
 		gap: 1rem;
@@ -348,7 +516,6 @@
 
 	.challenge:hover {
 		background-color: black;
-		cursor: url('images/interface/Scimitar.png'), auto;
 		scale: 1.1;
 	}
 
@@ -443,17 +610,12 @@
 
 	.team:hover {
 		background-color: black;
-		cursor: url('images/interface/Scimitar.png'), auto;
 		scale: 1.1;
 	}
 
 	.team.selected {
 		background-color: teal;
 		border: solid white 2px;
-	}
-
-	.team > .color {
-		/* background-size: cover; */
 	}
 
 	.team > .name {
@@ -515,5 +677,12 @@
 
 	.input {
 		background-color: teal;
+	}
+
+	.loading {
+		font-size: 2rem;
+		color: white;
+		text-shadow: 0px 0px 10px black;
+		margin: auto;
 	}
 </style>
