@@ -22,7 +22,7 @@
 		subscribeToChallenges();
 		subscribeToMessages();
 
-		getTeamData(); 
+		getTeamData();
 		getChallengeData();
 		getMessageData();
 
@@ -126,19 +126,19 @@
 						case 'UPDATE':
 							// console.log('payload', payload);
 							getChallengeData();
-							// const change = $challenges.find((challenge) => challenge.id === payload.new.id).completed.length - payload.new.completed.length;
+						// const change = $challenges.find((challenge) => challenge.id === payload.new.id).completed.length - payload.new.completed.length;
 
-							// console.log(change);
-							// switch (change) {
-							// 	case -1:
-							// 		$challenges.find((challenge) => challenge.id === payload.new.id).completed.push(payload.new.completed[payload.new.completed.length - 1]);
-							// 		break;
-							// 	case 1:
-							// 		$challenges.find((challenge) => challenge.id === payload.new.id).completed.pop();
-							// 		break;
-							// }
-							// $challenges = [...$challenges];
-							// break;
+						// console.log(change);
+						// switch (change) {
+						// 	case -1:
+						// 		$challenges.find((challenge) => challenge.id === payload.new.id).completed.push(payload.new.completed[payload.new.completed.length - 1]);
+						// 		break;
+						// 	case 1:
+						// 		$challenges.find((challenge) => challenge.id === payload.new.id).completed.pop();
+						// 		break;
+						// }
+						// $challenges = [...$challenges];
+						// break;
 					}
 				}
 			)
@@ -231,12 +231,12 @@
 			text: `Clan ${$selectedTeam.name} completed the challenge ${challenge.name}`
 		};
 
-		console.log(challenge.completed);
-
 		if (challenge.completed.includes($selectedTeam.id)) {
+			console.log('need to remove');
 			removeCompletedTeam(challenge, $selectedTeam);
 			removeMessage(message);
 		} else {
+			console.log('need to add');
 			addCompletedTeam(challenge, $selectedTeam);
 			addMessage(message);
 		}
@@ -264,9 +264,17 @@
 	async function removeCompletedTeam(challenge, team) {
 		console.log('removing team');
 		// console.log(challenge, team);
-		const { error } = await supabase.from('challenges').update({
-			completed: challenge.completed.splice(challenge.completed.indexOf(team.id), 1)
-		});
+
+		const newCompleted = challenge.completed.filter((teamId) => teamId !== team.id);
+
+		console.log(newCompleted);
+
+		const { error } = await supabase
+			.from('challenges')
+			.update({
+				completed: newCompleted
+			})
+			.eq('id', challenge.id);
 
 		if (error) {
 			console.error('Error updating challenge', error);
@@ -332,7 +340,11 @@
 				{#each $challenges.filter((challenge) => challenge.type === 'main') as challenge}
 					{@const points =
 						challenge.points - Math.min(challenge.completed.length, maxDecrement) * decrement}
-					<div class="challenge" on:click={() => updateChallenge(challenge)}>
+					<div
+						class="challenge"
+						on:click={() => updateChallenge(challenge)}
+						style="order: {challenge.order};"
+					>
 						<img class="challenge-icon" src="images/challenge-icons/{challenge.name}.png" />
 						<div class="name">{challenge.name}</div>
 						<div class="points">{points}</div>
