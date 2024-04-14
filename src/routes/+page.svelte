@@ -2,20 +2,34 @@
 	import '../styles.css';
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/supabaseClient.js';
-	import tourneyDataDefault from '$lib/tourneyData.json';
-	import Healthbar from '../lib/components/Healthbar.svelte';
-	import { tournament, teams, challenges, messages, selectedTeam } from '$lib/stores.js';
-
-	let tourneyData;
+	import {
+		tournament,
+		teams,
+		challenges,
+		messages,
+		selectedTeam,
+		isEditable
+	} from '$lib/stores.js';
+	import Team from '../lib/components/Team.svelte';
+	import ChatBox from '../lib/components/ChatBox.svelte';
 
 	const decrement = 1;
 	const maxDecrement = 2;
+
+	const outerThreshold = 8;
+	const innerThreshold = 16;
+
+	const outerRingIndeces = [1, 2, 3, 4, 5, 6, 10, 11, 15, 16, 20, 21, 22, 23, 24, 25];
+	const innerRingIndeces = [7, 8, 9, 12, 13, 14, 17, 18, 19];
+	const coreIndeces = [13];
 
 	$: maxHealth = $challenges.reduce((sum, currentChallenge) => {
 		return sum + currentChallenge.points;
 	}, 0);
 
-	// let selectedTeam;
+	$: currentTouchedChallenges = $challenges.filter(
+		(challenge) => challenge.completed.length > 0
+	).length;
 
 	onMount(async () => {
 		subscribeToTeams();
@@ -23,12 +37,6 @@
 		subscribeToMessages();
 
 		await Promise.all([getTeamData(), getChallengeData(), getMessageData()]);
-
-		console.log('challenges', $challenges);
-
-		// getTeamData();
-		// getChallengeData();
-		// getMessageData();
 
 		styleScrollbar();
 
@@ -128,21 +136,7 @@
 							$challenges = $challenges.filter((journalData) => journalData.id !== payload.old.id);
 							break;
 						case 'UPDATE':
-							// console.log('payload', payload);
 							getChallengeData();
-						// const change = $challenges.find((challenge) => challenge.id === payload.new.id).completed.length - payload.new.completed.length;
-
-						// console.log(change);
-						// switch (change) {
-						// 	case -1:
-						// 		$challenges.find((challenge) => challenge.id === payload.new.id).completed.push(payload.new.completed[payload.new.completed.length - 1]);
-						// 		break;
-						// 	case 1:
-						// 		$challenges.find((challenge) => challenge.id === payload.new.id).completed.pop();
-						// 		break;
-						// }
-						// $challenges = [...$challenges];
-						// break;
 					}
 				}
 			)
@@ -300,40 +294,44 @@
 	function removeMessage(message) {
 		$messages = $messages.filter((existingMessage) => existingMessage.text !== message.text);
 	}
+
+	async function resetChallenges() {
+		const { error } = await supabase
+			.from('challenges')
+			.update({ completed: [] })
+			.eq('tournament', $tournament);
+
+		getChallengeData();
+	}
 </script>
 
 <div
-	class="frame" 	style="background-image: url('images/Wide Background.jpg');
+	class="frame"
+	style="background-image: url('images/Wide Background.jpg');
 	cursor: url('images/interface/Scimitar.png'), auto;"
 >
 	{#if $teams && $challenges && $messages}
 		<!-- TITLE -->
-		<h1 class="title">OSRS Tourney</h1>
+		<!-- <h1 class="title">OSRS Tourney</h1> -->
 
 		<!-- SETTINGS -->
-		<div class="settings">
+		<div class:blue={$isEditable} class="settings">
 			<button class="hamburger-button"><span class="material-symbols-outlined"> menu </span></button
 			>
 		</div>
 
 		<!-- TEAMS -->
-		<div class="teams" >
+		<div class="teams">
 			<div class="label">TEAMS</div>
 			{#each $teams as team}
 				{@const currentHealth = $challenges
-					.filter((challenge) => challenge.completed.includes(team.name))
+					.filter((challenge) => challenge.completed.includes(team.id))
 					.reduce(
 						(sum, challenge) =>
-							sum +
-							challenge.points -
-							Math.min(challenge.completed.indexOf(team.name), maxDecrement),
+							sum + challenge.points - Math.min(challenge.completed.indexOf(team.id), maxDecrement),
 						0
 					)}
-				<div class="team" class:selected={team === $selectedTeam} on:click={() => selectTeam(team)}>
-					<img class="hat" src="images/{team.icon}" />
-					<Healthbar {maxHealth} {currentHealth} />
-					<div class="name">{team.name}</div>
-				</div>
+				<Team {team} {currentHealth} {maxHealth} />
 			{/each}
 		</div>
 		<!-- CHALLENGES -->
@@ -341,6 +339,35 @@
 			<div class="label">MAIN CHALLENGES</div>
 			<div class="challenges">
 				{#each $challenges.filter((challenge) => challenge.type === 'main') as challenge}
+					{@const points =
+						challenge.points - Math.min(challenge.completed.length, maxDecrement) * decrement}
+					<div
+						class="challenge"
+						on:click={() => updateChallenge(challenge)}
+						style="order: {challenge.order};"
+						class:hidden={(innerRingIndeces.includes(challenge.order) &&
+							currentTouchedChallenges < outerThreshold) ||
+							(coreIndeces.includes(challenge.order) && currentTouchedChallenges < innerThreshold)}
+					>
+						<img class="challenge-icon" src="images/challenge-icons/{challenge.name}.png" />
+						<div class="name">{challenge.name}</div>
+						<div class="points">{points}</div>
+						<div class="completed-teams">
+							{#each challenge.completed as teamId}
+								{@const icon = $teams.find((team) => team.id === teamId).icon}
+								<div class="completed-team">
+									<img class="team-icon" src="images/{icon}" />
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
+		<div class="bonus-challenges-container">
+			<div class="label">BONUS</div>
+			<div class="bonus-challenges">
+				{#each $challenges.filter((challenge) => challenge.type === 'bonus') as challenge}
 					{@const points =
 						challenge.points - Math.min(challenge.completed.length, maxDecrement) * decrement}
 					<div
@@ -363,46 +390,8 @@
 				{/each}
 			</div>
 		</div>
-		<div class="bonus-challenges-container">
-			<div class="label">BONUS</div>
-			<div class="bonus-challenges">
-				{#each $challenges.filter((challenge) => challenge.type === 'bonus') as challenge}
-					<div class="challenge" on:click={() => updateChallenge(challenge)}>
-						<img class="challenge-icon" src="images/challenge-icons/{challenge.name}.png" />
-						<div class="name">{challenge.name}</div>
-						<div class="points">{challenge.points}</div>
-						<div class="completed-teams">
-							{#each challenge.completed as teamName}
-								{@const icon = $teams.find((team) => team.name === teamName).icon}
-								<div class="completed-team">
-									<img class="team-icon" src="images/{icon}" />
-								</div>
-							{/each}
-						</div>
-					</div>
-				{/each}
-			</div>
-		</div>
 		<!-- EVENTS -->
-		<div
-			class="messages-container"
-			style="border-image: url('images/interface/Message Border.png') 8 / 16px repeat; 
-				background-image: url('images/interface/Message Background.png');"
-		>
-			<div class="messages">
-				{#each [...$messages].reverse() as message}
-					<div class="message">{message.text}</div>
-				{/each}
-			</div>
-			<div class="input-container">
-				<span class="input-name">Fensail</span>
-				<div class="input"></div>
-			</div>
-			<div class="button-container">
-				<!-- <button class="save" on:click={save}>SAVE</button>
-				<button class="reset" on:click={reset}>RESET</button> -->
-			</div>
-		</div>
+		<ChatBox on:reset={resetChallenges} />
 	{:else}
 		<div class="loading">Loading...</div>
 	{/if}
@@ -412,10 +401,10 @@
 	.frame {
 		/* position: fixed; */
 		/* max-width: 100vw; */
-		height: 100vh;
+		min-height: 100vh;
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
-		grid-template-rows: auto auto 1fr;
+		grid-template-rows: auto auto auto;
 		grid-template-areas:
 			'.     title      settings'
 			'teams challenges bonus'
@@ -428,11 +417,12 @@
 		background-size: cover;
 		/* background-repeat: repeat; */
 		/* background-position: 50% 50%; */
-		background-position: -15rem;
+		/* background-position: -15rem; */
 		/* animation: flow 5s linear infinite; */
 		padding: 1rem;
 		gap: 1rem;
 		/* scrollbar-gutter: stable; */
+
 	}
 
 	@keyframes flow {
@@ -456,11 +446,16 @@
 	}
 
 	.label {
-		font-family: 'Earth Theory', sans-serif;
-		color: white;
-		text-shadow: 0px 0px 10px black;
+		/* font-family: 'Earth Theory', sans-serif; */
+		font-family: 'Metroid-Prime-Font', sans-serif;
+		color: yellow;
+		text-shadow: 6px 6px 0px black;
 		text-align: center;
 		font-size: 2rem;
+		margin: 0 auto;
+		/* width: 240px; */
+		/* width: 100%; */
+		/* width: 14rem; */
 	}
 
 	.settings {
@@ -517,8 +512,9 @@
 		align-items: center;
 		/* background-color: #0006; */
 		backdrop-filter: blur(20px);
-		border: solid yellow 1px;
-		/* border: solid green 1px; */
+		/* box-shadow: 4px 4px 10px 10px #0004;	 */
+		border: solid black 2px;
+		/* overflow:hidden; */
 		font-size: medium;
 		color: yellow;
 		text-align: center;
@@ -599,6 +595,7 @@
 	}
 
 	.bonus-challenges {
+		padding: 1rem 0;
 		display: grid;
 		gap: 4px;
 	}
@@ -606,16 +603,18 @@
 	.teams {
 		display: flex;
 		flex-direction: column;
+		justify-content: start;
+		align-items: end;
 		gap: 1rem;
 		grid-area: teams;
+		/* background-color: blue; */
 		/* overflow-y: auto; */
 		/* overflow-x: visible; */
 	}
 
-	.team {
+	/* .team {
 		position: relative;
 		display: flex;
-		/* justify-content: center; */
 		align-items: center;
 		padding: 0.5rem;
 		gap: 1rem;
@@ -648,14 +647,13 @@
 		top: 0;
 		translate: -1.25rem -1.25rem;
 		rotate: -30deg;
-	}
+	} */
 
-	.button-container {
+	/* .button-container {
 		display: flex;
 	}
 
 	.messages-container {
-		/* box-sizing: content-box; */
 		display: flex;
 		grid-area: messages;
 		flex-direction: column;
@@ -673,14 +671,12 @@
 		width: 100%;
 		padding: 4px 4px;
 		height: 100%;
-		/* background-color: teal; */
 		overflow-y: scroll;
 		box-shadow: inset 2px 2px 4px 0px #0008;
 	}
 
 	.input-container {
 		display: flex;
-		/* justify-content: center; */
 		align-items: center;
 		height: 16px;
 		border-top: solid 2px rgba(128, 118, 96, 1);
@@ -692,12 +688,23 @@
 
 	.input {
 		background-color: teal;
-	}
+	} */
 
 	.loading {
 		font-size: 2rem;
 		color: white;
 		text-shadow: 0px 0px 10px black;
 		margin: auto;
+	}
+
+	.hidden {
+		/* visibility: hidden; */
+		filter: blur(20px);
+
+		/* border: solid black 2px; */
+	}
+
+	.blue {
+		background-color: blue;
 	}
 </style>

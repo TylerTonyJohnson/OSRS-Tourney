@@ -8,6 +8,10 @@ body {
     font-family: 'Runescape', sans-serif;
 }
 
+/* img {
+    image-rendering: pixelated;
+} */
+
 @font-face {
     font-family: 'Runescape';
     src: url('/fonts/runescape.ttf') format('truetype');
@@ -21,3 +25,4 @@ body {
     font-weight: normal;
     font-style: normal;
 }
+
