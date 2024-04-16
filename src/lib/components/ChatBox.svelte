@@ -43,7 +43,7 @@
 			<img class="icon" src="images/interface/Chat Helmet.png" alt="Ironman" />
 			<span class="input-name white text">Fensail:</span>
 
-			<input class="input white text" type="text" bind:value={input} />
+			<input class="input white text" type="text" size="1" bind:value={input} />
 
 			{#if true}
 				<span class="blue text">*</span>
@@ -52,7 +52,7 @@
 	</div>
 	<div class="buttons">
 		<!-- <button class="reset" on:click={reset}>RESET</button> -->
-		<Button />
+		<Button on:reset />
 	</div>
 </div>
 

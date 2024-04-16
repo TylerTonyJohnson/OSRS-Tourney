@@ -6,37 +6,31 @@
 		tournament,
 		teams,
 		challenges,
+		completions,
 		messages,
 		selectedTeam,
+		isolatedTeam,
 		isEditable
 	} from '$lib/stores.js';
 	import Team from '../lib/components/Team.svelte';
 	import ChatBox from '../lib/components/ChatBox.svelte';
-
-	const decrement = 1;
-	const maxDecrement = 2;
-
-	const outerThreshold = 8;
-	const innerThreshold = 16;
-
-	const outerRingIndeces = [1, 2, 3, 4, 5, 6, 10, 11, 15, 16, 20, 21, 22, 23, 24, 25];
-	const innerRingIndeces = [7, 8, 9, 12, 13, 14, 17, 18, 19];
-	const coreIndeces = [13];
+	import Challenge from '../lib/components/Challenge.svelte';
 
 	$: maxHealth = $challenges.reduce((sum, currentChallenge) => {
 		return sum + currentChallenge.points;
 	}, 0);
 
-	$: currentTouchedChallenges = $challenges.filter(
-		(challenge) => challenge.completed.length > 0
-	).length;
+	$: currentTouchedChallenges = new Set($completions).size;
+
+	$: console.log($isolatedTeam);
 
 	onMount(async () => {
 		subscribeToTeams();
 		subscribeToChallenges();
+		subscribeToCompletions();
 		subscribeToMessages();
 
-		await Promise.all([getTeamData(), getChallengeData(), getMessageData()]);
+		await Promise.all([getTeamData(), getChallengeData(), getCompletionData(), getMessageData()]);
 
 		styleScrollbar();
 
@@ -136,12 +130,37 @@
 							$challenges = $challenges.filter((journalData) => journalData.id !== payload.old.id);
 							break;
 						case 'UPDATE':
-							getChallengeData();
+						// getChallengeData();
 					}
 				}
 			)
 			.subscribe();
 	}
+
+	function subscribeToCompletions() {
+		const subscription = supabase
+			.channel('completions_channel')
+			.on(
+				'postgres_changes',
+				{
+					event: '*',
+					schema: 'public',
+					table: 'completions'
+				},
+				(payload) => {
+					switch (payload.eventType) {
+						case 'INSERT':
+							$completions = [...$completions, payload.new];
+							break;
+						case 'DELETE':
+							$completions = $completions.filter((completion) => completion.id !== payload.old.id);
+							break;
+					}
+				}
+			)
+			.subscribe();
+	}
+
 	function subscribeToMessages() {
 		const subscription = supabase
 			.channel('messages_channel')
@@ -155,11 +174,9 @@
 				(payload) => {
 					switch (payload.eventType) {
 						case 'INSERT':
-							console.log('new', payload.new);
 							$messages = [...$messages, payload.new];
 							break;
 						case 'DELETE':
-							console.log('old', payload.old);
 							$messages = $messages.filter((journalData) => journalData.id !== payload.old.id);
 							break;
 					}
@@ -178,7 +195,6 @@
 				error: 'Could not fetch teams'
 			};
 		} else {
-			// console.log('teams', data);
 		}
 		$teams = data ?? [];
 	}
@@ -196,9 +212,24 @@
 				error: 'Could not fetch challenges'
 			};
 		} else {
-			// console.log('challenges', data);
 		}
 		$challenges = data ?? [];
+	}
+
+	async function getCompletionData() {
+		const { data, error } = await supabase
+			.from('completions')
+			.select('*')
+			.eq('tournament', $tournament);
+		if (error) {
+			console.error('Error fetching completions', error);
+			return {
+				status: 500,
+				error: 'Could not fetch completions'
+			};
+		} else {
+		}
+		$completions = data ?? [];
 	}
 
 	async function getMessageData() {
@@ -214,100 +245,18 @@
 				error: 'Could not fetch messages'
 			};
 		} else {
-			// console.log('messages', data);
 		}
 		$messages = data ?? [];
 	}
 
-	function selectTeam(team) {
-		if ($selectedTeam !== team) $selectedTeam = team;
-	}
-
-	function updateChallenge(challenge) {
-		const message = {
-			type: 'notification',
-			text: `Clan ${$selectedTeam.name} completed the challenge ${challenge.name}`
-		};
-
-		if (challenge.completed.includes($selectedTeam.id)) {
-			console.log('need to remove');
-			removeCompletedTeam(challenge, $selectedTeam);
-			removeMessage(message);
-		} else {
-			console.log('need to add');
-			addCompletedTeam(challenge, $selectedTeam);
-			addMessage(message);
-		}
-	}
-
-	async function addCompletedTeam(challenge, team) {
-		console.log('adding team');
-		// console.log(challenge, team);
-		const { error } = await supabase
-			.from('challenges')
-			.update({
-				completed: [...challenge.completed, team.id]
-			})
-			.eq('id', challenge.id);
-
-		if (error) {
-			console.error('Error updating challenge', error);
-			return {
-				status: 500,
-				error: 'Could not update challenge'
-			};
-		}
-	}
-
-	async function removeCompletedTeam(challenge, team) {
-		console.log('removing team');
-		// console.log(challenge, team);
-
-		const newCompleted = challenge.completed.filter((teamId) => teamId !== team.id);
-
-		console.log(newCompleted);
-
-		const { error } = await supabase
-			.from('challenges')
-			.update({
-				completed: newCompleted
-			})
-			.eq('id', challenge.id);
-
-		if (error) {
-			console.error('Error updating challenge', error);
-			return {
-				status: 500,
-				error: 'Could not update challenge'
-			};
-		}
-
-		// challenge.completed.splice(challenge.completed.indexOf(team), 1);
-		// $challenges = [...$challenges];
-	}
-
-	function addMessage(message) {
-		if ($messages.includes(message)) return;
-		$messages = [...$messages, message];
-	}
-
-	function removeMessage(message) {
-		$messages = $messages.filter((existingMessage) => existingMessage.text !== message.text);
-	}
-
 	async function resetChallenges() {
-		const { error } = await supabase
-			.from('challenges')
-			.update({ completed: [] })
-			.eq('tournament', $tournament);
-
-		getChallengeData();
+		const { error } = await supabase.from('completions').delete().eq('tournament', $tournament);
 	}
 </script>
 
 <div
 	class="frame"
-	style="background-image: url('images/Wide Background.jpg');
+	style="background-image: linear-gradient(to top right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 100%), url('images/Wide Background.jpg');
 	cursor: url('images/interface/Scimitar.png'), auto;"
 >
 	{#if $teams && $challenges && $messages}
@@ -324,14 +273,7 @@
 		<div class="teams">
 			<div class="label">TEAMS</div>
 			{#each $teams as team}
-				{@const currentHealth = $challenges
-					.filter((challenge) => challenge.completed.includes(team.id))
-					.reduce(
-						(sum, challenge) =>
-							sum + challenge.points - Math.min(challenge.completed.indexOf(team.id), maxDecrement),
-						0
-					)}
-				<Team {team} {currentHealth} {maxHealth} />
+				<Team {team} {maxHealth} />
 			{/each}
 		</div>
 		<!-- CHALLENGES -->
@@ -339,28 +281,7 @@
 			<div class="label">MAIN CHALLENGES</div>
 			<div class="challenges">
 				{#each $challenges.filter((challenge) => challenge.type === 'main') as challenge}
-					{@const points =
-						challenge.points - Math.min(challenge.completed.length, maxDecrement) * decrement}
-					<div
-						class="challenge"
-						on:click={() => updateChallenge(challenge)}
-						style="order: {challenge.order};"
-						class:hidden={(innerRingIndeces.includes(challenge.order) &&
-							currentTouchedChallenges < outerThreshold) ||
-							(coreIndeces.includes(challenge.order) && currentTouchedChallenges < innerThreshold)}
-					>
-						<img class="challenge-icon" src="images/challenge-icons/{challenge.name}.png" />
-						<div class="name">{challenge.name}</div>
-						<div class="points">{points}</div>
-						<div class="completed-teams">
-							{#each challenge.completed as teamId}
-								{@const icon = $teams.find((team) => team.id === teamId).icon}
-								<div class="completed-team">
-									<img class="team-icon" src="images/{icon}" />
-								</div>
-							{/each}
-						</div>
-					</div>
+					<Challenge {challenge} {currentTouchedChallenges} />
 				{/each}
 			</div>
 		</div>
@@ -368,25 +289,7 @@
 			<div class="label">BONUS</div>
 			<div class="bonus-challenges">
 				{#each $challenges.filter((challenge) => challenge.type === 'bonus') as challenge}
-					{@const points =
-						challenge.points - Math.min(challenge.completed.length, maxDecrement) * decrement}
-					<div
-						class="challenge"
-						on:click={() => updateChallenge(challenge)}
-						style="order: {challenge.order};"
-					>
-						<img class="challenge-icon" src="images/challenge-icons/{challenge.name}.png" />
-						<div class="name">{challenge.name}</div>
-						<div class="points">{points}</div>
-						<div class="completed-teams">
-							{#each challenge.completed as teamId}
-								{@const icon = $teams.find((team) => team.id === teamId).icon}
-								<div class="completed-team">
-									<img class="team-icon" src="images/{icon}" />
-								</div>
-							{/each}
-						</div>
-					</div>
+					<Challenge {challenge} {currentTouchedChallenges} />
 				{/each}
 			</div>
 		</div>
@@ -399,8 +302,6 @@
 
 <style>
 	.frame {
-		/* position: fixed; */
-		/* max-width: 100vw; */
 		min-height: 100vh;
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
@@ -409,20 +310,11 @@
 			'.     title      settings'
 			'teams challenges bonus'
 			'.     messages   .';
-		/* align-items: center; */
-		/* flex-direction: column; */
-		/* background-color: darkolivegreen; */
-		/* background-image: url('images/Inferno.png'); */
-		/* background-image: url('images/Zuk.png'); */
+
 		background-size: cover;
-		/* background-repeat: repeat; */
-		/* background-position: 50% 50%; */
-		/* background-position: -15rem; */
-		/* animation: flow 5s linear infinite; */
+		background-blend-mode: saturation;
 		padding: 1rem;
 		gap: 1rem;
-		/* scrollbar-gutter: stable; */
-
 	}
 
 	@keyframes flow {
@@ -448,7 +340,7 @@
 	.label {
 		/* font-family: 'Earth Theory', sans-serif; */
 		font-family: 'Metroid-Prime-Font', sans-serif;
-		color: yellow;
+		color: white;
 		text-shadow: 6px 6px 0px black;
 		text-align: center;
 		font-size: 2rem;
@@ -501,87 +393,6 @@
 		/* padding: 2rem; */
 	}
 
-	.challenge {
-		position: relative;
-		width: 100px;
-		height: 100px;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		padding: 0.25rem;
-		align-items: center;
-		/* background-color: #0006; */
-		backdrop-filter: blur(20px);
-		/* box-shadow: 4px 4px 10px 10px #0004;	 */
-		border: solid black 2px;
-		/* overflow:hidden; */
-		font-size: medium;
-		color: yellow;
-		text-align: center;
-		/* box-shadow: 0px 0px 10px 10px #FFF4; */
-		/* filter: blur(4px); */
-		transition-property: scale, background-color;
-		transition-duration: 0.15s;
-		transition-timing-function: ease-out;
-	}
-
-	.challenge:hover {
-		background-color: black;
-		scale: 1.1;
-	}
-
-	.challenge-icon {
-		position: absolute;
-		filter: drop-shadow(5px 5px 5px #000);
-	}
-
-	.challenge > .name {
-		position: absolute;
-		/* background-color: teal; */
-		left: 50%;
-		top: 0%;
-		translate: -50% 0%;
-		width: 100%;
-	}
-
-	.challenge > .points {
-		position: absolute;
-		/* aspect-ratio: 1 / 1; */
-		background: radial-gradient(black 20%, transparent 75%);
-		left: 50%;
-		top: 50%;
-		translate: -50% -50%;
-		font-size: 2rem;
-		width: 2rem;
-		text-shadow: 0px 0px 5px black;
-		text-align: center;
-		color: white;
-	}
-
-	.completed-teams {
-		position: absolute;
-		padding: 4px;
-		width: 100%;
-		grid-template-columns: repeat(4, 1fr);
-		display: grid;
-		gap: 4px;
-		bottom: 0;
-	}
-
-	.completed-team {
-		/* width: 10px;
-		height: 10px; */
-		aspect-ratio: 1 / 1;
-		/* background-color: yellow; */
-	}
-
-	.team-icon {
-		width: 100%;
-		border: solid white 1px;
-		border-radius: 50%;
-		background-color: black;
-	}
-
 	.bonus-challenges-container {
 		display: flex;
 		flex-direction: column;
@@ -612,96 +423,11 @@
 		/* overflow-x: visible; */
 	}
 
-	/* .team {
-		position: relative;
-		display: flex;
-		align-items: center;
-		padding: 0.5rem;
-		gap: 1rem;
-		border: solid orange 1px;
-		background-color: purple;
-	}
-
-	.team:hover {
-		background-color: black;
-		scale: 1.1;
-	}
-
-	.team.selected {
-		background-color: teal;
-		border: solid white 2px;
-	}
-
-	.team > .name {
-		color: white;
-		text-align: center;
-		font-size: x-large;
-	}
-
-	.hat {
-		position: absolute;
-		width: calc(86px / 2);
-		height: calc(74px / 2);
-		z-index: 2;
-		left: 0;
-		top: 0;
-		translate: -1.25rem -1.25rem;
-		rotate: -30deg;
-	} */
-
-	/* .button-container {
-		display: flex;
-	}
-
-	.messages-container {
-		display: flex;
-		grid-area: messages;
-		flex-direction: column;
-		justify-content: space-between;
-		padding: 12px;
-		width: 518px;
-		height: 144px;
-		background-size: 100%;
-		image-rendering: pixelated;
-		font-size: 14px;
-		line-height: 12.5px;
-	}
-
-	.messages {
-		width: 100%;
-		padding: 4px 4px;
-		height: 100%;
-		overflow-y: scroll;
-		box-shadow: inset 2px 2px 4px 0px #0008;
-	}
-
-	.input-container {
-		display: flex;
-		align-items: center;
-		height: 16px;
-		border-top: solid 2px rgba(128, 118, 96, 1);
-	}
-
-	.input-name {
-		padding: 2px 4px;
-	}
-
-	.input {
-		background-color: teal;
-	} */
-
 	.loading {
 		font-size: 2rem;
 		color: white;
 		text-shadow: 0px 0px 10px black;
 		margin: auto;
-	}
-
-	.hidden {
-		/* visibility: hidden; */
-		filter: blur(20px);
-
-		/* border: solid black 2px; */
 	}
 
 	.blue {

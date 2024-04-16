@@ -1,11 +1,19 @@
 <script>
+    import { createEventDispatcher } from "svelte";
+
+    const dispatch = createEventDispatcher();
+
     export let name = 'RESET';
+
+    function reset() {
+        dispatch('reset');
+    }
 
 </script>
 
-<div class='frame' style="background-image: url('images/interface/Button.png')">
-    <div class='name'>{name}</div>
-</div>
+<button class='frame' on:click={reset} style="background-image: url('images/interface/Button.png')">
+    <span class='name'>{name}</span>
+</button>
 
 <style>
     .frame {

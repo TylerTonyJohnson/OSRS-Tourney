@@ -12,6 +12,14 @@ body {
     image-rendering: pixelated;
 } */
 
+img {
+    user-drag: none;
+    -webkit-user-drag: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
 @font-face {
     font-family: 'Runescape';
     src: url('/fonts/runescape.ttf') format('truetype');

@@ -1,13 +1,57 @@
 <script>
-	import { selectedTeam } from '../stores.js';
+	import { challenges, selectedTeam, isolatedTeam, completions } from '../stores.js';
 	import Healthbar from './Healthbar.svelte';
 
 	export let team;
 	export let maxHealth;
-	export let currentHealth;
+
+	$: currentHealth = 99;
+
+	$: completedChallenges = $completions
+		.filter((completion) => completion.team === team.id)
+		.map((completion) => completion.challenge);
+
+	function selectTeam() {
+		// console.log('selecting team');
+		$selectedTeam = team;
+		$isolatedTeam = null;
+	}
+
+	function isolateTeam() {
+		console.log('isolating team');
+		$isolatedTeam = team;
+	}
+
+	function getCurrentHealth() {
+
+		let totalPoints = 0;
+
+		console.log(completedChallenges);
+
+		completedChallenges.forEach((challenge) => {
+			const sortedCompletions = $completions
+				.filter((completion) => completion.challenge === challenge)
+				.sort((a, b) => a.created_at - b.created_at);
+
+			// console.log(sortedCompletions);
+
+			const teamIndex = sortedCompletions.findIndex((completion) => completion.team === team.id);
+
+			totalPoints += challenge.points - teamIndex;
+		});
+
+		return totalPoints;
+	}
 </script>
 
-<div class="team" class:selected={team === $selectedTeam} on:click={() => selectTeam(team)}>
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div
+	class="team"
+	class:selected={team === $selectedTeam}
+	on:click={selectTeam}
+	on:dblclick={getCurrentHealth}
+>
 	<div class="fade"></div>
 	<div
 		class="border"
@@ -30,6 +74,7 @@
 		background-size: cover;
 		image-rendering: pixelated;
 		overflow: hidden;
+		user-select: none;
 	}
 
 	.fade {
@@ -80,7 +125,7 @@
 	}
 
 	.team.selected {
-		/* background-color: teal;
-		border: solid white 2px; */
+		background-color: teal;
+		border: solid white 2px;
 	}
 </style>

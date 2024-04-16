@@ -33,7 +33,7 @@
 	.full-orb,
 	.heart {
 		position: absolute;
-		height: 100%;
+		height: 110%;
 		right: 0;
 		image-rendering: pixelated;
 	}
@@ -46,11 +46,13 @@
 		position: absolute;
 		width: 22px;
 		height: 14px;
-		left: 4px;
-		top: 14px;
+		left: 0px;
+		top: 16px;
 		text-align: center;
-		text-shadow: 1px 1px black;
-		/* font-size: 20px; */
+		text-shadow: 1px 1px black, 0px 0px 2px black;
+		/* background-color: white; */
+		line-height: 16px;
+		font-size: 20px;
 		/* font-weight: bold; */
 	}
 </style>
