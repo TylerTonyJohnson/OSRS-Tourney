@@ -3,8 +3,10 @@
 	import { createEventDispatcher } from 'svelte';
 	import { isEditable } from '../stores';
 	import Button from './Button.svelte';
+	import { fly } from 'svelte/transition';
 
 	let input = '';
+	let inputElement;
 
 	const dispatch = createEventDispatcher();
 
@@ -17,10 +19,19 @@
 	function handleInput(event) {
 		if (event.key !== 'Enter') return;
 
-		if (input === secretWord) {
-			$isEditable = true;
-		} else {
-			$isEditable = false;
+		switch (true) {
+			case inputElement !== document.activeElement:
+				console.log('focusing');
+				inputElement.focus();
+				break;
+			case input === secretWord:
+				console.log('entering');
+				$isEditable = true;
+				break;
+			case input !== secretWord:
+				console.log('not entering');
+				$isEditable = false;
+				break;
 		}
 
 		input = '';
@@ -29,7 +40,7 @@
 
 <svelte:window on:keydown={handleInput} />
 
-<div class="menu">
+<div class="menu" in:fly={{ y: 1000, duration: 1000 }}>
 	<div
 		class="chat-box"
 		style="border-image: url('images/interface/Message Border.png') 8 / 16px repeat;"
@@ -43,7 +54,19 @@
 			<img class="icon" src="images/interface/Chat Helmet.png" alt="Ironman" />
 			<span class="input-name white text">Fensail:</span>
 
-			<input class="input white text" type="text" size="1" bind:value={input} />
+			<input
+				on:focus={() => {
+					console.log('focusing');
+				}}
+				on:blur={() => {
+					console.log('blurring');
+				}}
+				class="input white text"
+				type="text"
+				size="1"
+				bind:value={input}
+				bind:this={inputElement}
+			/>
 
 			{#if true}
 				<span class="blue text">*</span>
@@ -51,8 +74,7 @@
 		</div>
 	</div>
 	<div class="buttons">
-		<!-- <button class="reset" on:click={reset}>RESET</button> -->
-		<Button on:reset />
+		<Button on:reset={reset} />
 	</div>
 </div>
 
@@ -112,7 +134,7 @@
 	}
 
 	.input {
-		min-width: 0px;
+		/* min-width: 0px; */
 		max-width: 100%;
 		background-color: transparent;
 		border: none;

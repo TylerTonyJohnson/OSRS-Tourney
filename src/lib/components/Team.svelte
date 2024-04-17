@@ -1,15 +1,24 @@
 <script>
-	import { challenges, selectedTeam, isolatedTeam, completions } from '../stores.js';
+	import { fade, fly, scale } from 'svelte/transition';
+	import {
+		rules,
+		challenges,
+		selectedTeam,
+		isolatedTeam,
+		completions,
+		scores,
+		winningTeam
+	} from '../stores.js';
 	import Healthbar from './Healthbar.svelte';
 
 	export let team;
 	export let maxHealth;
 
-	$: currentHealth = 99;
+	$: currentHealth = $scores.find((score) => score.team === team.id)?.points ?? 0;
 
-	$: completedChallenges = $completions
-		.filter((completion) => completion.team === team.id)
-		.map((completion) => completion.challenge);
+	$: isWinning = $scores[0].points === currentHealth && currentHealth > 0;
+
+	$: console.log(isWinning);
 
 	function selectTeam() {
 		// console.log('selecting team');
@@ -21,27 +30,6 @@
 		console.log('isolating team');
 		$isolatedTeam = team;
 	}
-
-	function getCurrentHealth() {
-
-		let totalPoints = 0;
-
-		console.log(completedChallenges);
-
-		completedChallenges.forEach((challenge) => {
-			const sortedCompletions = $completions
-				.filter((completion) => completion.challenge === challenge)
-				.sort((a, b) => a.created_at - b.created_at);
-
-			// console.log(sortedCompletions);
-
-			const teamIndex = sortedCompletions.findIndex((completion) => completion.team === team.id);
-
-			totalPoints += challenge.points - teamIndex;
-		});
-
-		return totalPoints;
-	}
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -50,7 +38,8 @@
 	class="team"
 	class:selected={team === $selectedTeam}
 	on:click={selectTeam}
-	on:dblclick={getCurrentHealth}
+	on:dblclick={isolateTeam}
+	in:fly={{ x: -100, duration: 300 }}
 >
 	<div class="fade"></div>
 	<div
@@ -62,10 +51,17 @@
 		<Healthbar {maxHealth} {currentHealth} />
 		<div class="name">{team.name}</div>
 	</div>
+	{#if isWinning}
+		<div class="crown-container" transition:scale>
+			<img class="crown" src="images/Yellow Hat.png" alt="Crown" />
+		</div>
+	{/if}
 </div>
 
 <style>
 	.team {
+		--highlight: black;
+
 		position: relative;
 		display: flex;
 
@@ -73,26 +69,30 @@
 		height: 90px;
 		background-size: cover;
 		image-rendering: pixelated;
-		overflow: hidden;
+		/* overflow: hidden; */
 		user-select: none;
+		box-shadow: 0px 0px 10px 10px #0004;
+		transition-property: all;
+		transition-duration: 100ms;
+		transition-timing-function: ease-out;
 	}
 
 	.fade {
 		position: absolute;
 		inset: 0;
-		background-image: linear-gradient(to right, transparent, black);
+		background-image: linear-gradient(to right, transparent, var(--highlight));
 	}
 
 	.banner {
 		grid-area: banner;
 		height: 100%;
-		image-rendering: pixelated;
+		image-rendering: auto;
 		margin-right: auto;
-		/* filter: blur(5px); */
 	}
 
 	.team:hover {
-		background-color: black;
+		--highlight: teal;
+		/* background-image: linear-gradient(to right, transparent, white); */
 		scale: 1.1;
 	}
 
@@ -127,5 +127,58 @@
 	.team.selected {
 		background-color: teal;
 		border: solid white 2px;
+	}
+
+	.crown-container {
+		position: absolute;
+		height: 40%;
+		right: 5%;
+		top: -18%;
+		/* background-color: pink; */
+	}
+
+	.crown-container::before {
+		content: '';
+		position: absolute;
+		inset: -50%;
+		background-image: repeating-conic-gradient(
+			transparent 0,
+			hsl(60, 100%, 50%) 30deg,
+			transparent 60deg
+		);
+		mask-image: radial-gradient(circle at center, black, transparent 60%);
+		border-radius: 50%;
+		animation:
+			spin 10s linear infinite,
+			pulse 2s linear infinite;
+		z-index: 1;
+	}
+
+	.crown {
+		position: relative;
+		inset: 0;
+		height: 100%;
+		z-index: 2;
+	}
+
+	@keyframes spin {
+		from {
+			rotate: 0deg;
+		}
+		to {
+			rotate: 360deg;
+		}
+	}
+
+	@keyframes pulse {
+		0% {
+			scale: 1;
+		}
+		50% {
+			scale: 1.2;
+		}
+		100% {
+			scale: 1;
+		}
 	}
 </style>

@@ -7,6 +7,7 @@
 		teams,
 		challenges,
 		completions,
+		scores,
 		messages,
 		selectedTeam,
 		isolatedTeam,
@@ -20,9 +21,9 @@
 		return sum + currentChallenge.points;
 	}, 0);
 
-	$: currentTouchedChallenges = new Set($completions).size;
-
-	$: console.log($isolatedTeam);
+	$: currentTouchedChallenges = $challenges.filter((challenge) =>
+		$completions.find((completion) => completion.challenge === challenge.id)
+	).length;
 
 	onMount(async () => {
 		subscribeToTeams();
@@ -177,7 +178,7 @@
 							$messages = [...$messages, payload.new];
 							break;
 						case 'DELETE':
-							$messages = $messages.filter((journalData) => journalData.id !== payload.old.id);
+							$messages = $messages.filter((message) => message.id !== payload.old.id);
 							break;
 					}
 				}
@@ -259,7 +260,7 @@
 	style="background-image: linear-gradient(to top right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 100%), url('images/Wide Background.jpg');
 	cursor: url('images/interface/Scimitar.png'), auto;"
 >
-	{#if $teams && $challenges && $messages}
+	{#if $teams && $challenges && $messages && $completions}
 		<!-- TITLE -->
 		<!-- <h1 class="title">OSRS Tourney</h1> -->
 
@@ -272,7 +273,7 @@
 		<!-- TEAMS -->
 		<div class="teams">
 			<div class="label">TEAMS</div>
-			{#each $teams as team}
+			{#each $teams as team (team.id)}
 				<Team {team} {maxHealth} />
 			{/each}
 		</div>
@@ -280,7 +281,7 @@
 		<div class="challenges-container">
 			<div class="label">MAIN CHALLENGES</div>
 			<div class="challenges">
-				{#each $challenges.filter((challenge) => challenge.type === 'main') as challenge}
+				{#each $challenges.filter((challenge) => challenge.type === 'main') as challenge (challenge.order)}
 					<Challenge {challenge} {currentTouchedChallenges} />
 				{/each}
 			</div>
@@ -288,7 +289,7 @@
 		<div class="bonus-challenges-container">
 			<div class="label">BONUS</div>
 			<div class="bonus-challenges">
-				{#each $challenges.filter((challenge) => challenge.type === 'bonus') as challenge}
+				{#each $challenges.filter((challenge) => challenge.type === 'bonus') as challenge (challenge.order)}
 					<Challenge {challenge} {currentTouchedChallenges} />
 				{/each}
 			</div>
@@ -339,9 +340,10 @@
 
 	.label {
 		/* font-family: 'Earth Theory', sans-serif; */
-		font-family: 'Metroid-Prime-Font', sans-serif;
+		/* font-family: 'Metroid-Prime-Font', sans-serif; */
+		font-family: 'Runescape', sans-serif;
 		color: white;
-		text-shadow: 6px 6px 0px black;
+		text-shadow: 3px 3px 0px black;
 		text-align: center;
 		font-size: 2rem;
 		margin: 0 auto;

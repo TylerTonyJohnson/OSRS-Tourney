@@ -1,5 +1,5 @@
 <script>
-	import { teams, completions, tournament, selectedTeam, messages } from '../stores';
+	import { rules, teams, completions, tournament, selectedTeam, isolatedTeam, messages } from '../stores';
 	import { scale } from 'svelte/transition';
 	import { supabase } from '../supabaseClient.js';
 	export let challenge;
@@ -18,6 +18,8 @@
 	$: currentCompletions = $completions.filter(
 		(completion) => completion.challenge === challenge.id
 	);
+
+	$: isGray = currentCompletions.length >= $rules.maxTeams;
 
 	$: points = challenge.points - Math.min(currentCompletions.length, maxDecrement) * decrement;
 
@@ -44,7 +46,7 @@
 		const { error } = await supabase.from('completions').insert({
 			tournament: $tournament,
 			challenge: challenge.id,
-			team: team.id,
+			team: team.id
 		});
 
 		if (error) {
@@ -94,15 +96,20 @@
 		currentTouchedChallenges < outerThreshold) ||
 		(coreIndeces.includes(challenge.order) && currentTouchedChallenges < innerThreshold)}
 	in:scale
+	class:gray={isGray}
 >
 	<!-- svelte-ignore a11y-missing-attribute -->
-	<img class="challenge-icon" src="images/challenge-icons/{challenge.name}.png" />
+	<img
+		class="challenge-icon"
+		src="images/challenge-icons/{challenge.name}.png"
+		class:gray={isGray}
+	/>
 	<div class="name">{challenge.name}</div>
 	<div class="points">{points}</div>
 	<div class="completions">
 		{#each currentCompletions as completion}
 			{@const teamName = $teams.find((team) => team.id === completion.team).name}
-			<div class="completion">
+			<div class="completion" transition:scale>
 				<!-- svelte-ignore a11y-missing-attribute -->
 				<img class="icon" src="images/interface/Banner {teamName}.png" />
 			</div>
@@ -121,16 +128,17 @@
 		padding: 0.25rem;
 		align-items: center;
 		/* background-color: #0006; */
-		backdrop-filter: blur(20px);
+		backdrop-filter: blur(10px);
 		/* box-shadow: 4px 4px 10px 10px #0004;	 */
-		border: solid black 2px;
+		/* border: solid black 2px; */
 		/* overflow:hidden; */
 		font-size: medium;
 		color: yellow;
+		text-shadow: 1px 1px 0px black;
 		text-align: center;
 		box-shadow: 0px 0px 10px 10px #0004;
 		/* filter: blur(4px); */
-		transition-property: scale, background-color;
+		transition-property: scale, background-color, backdrop-filter;
 		transition-duration: 0.15s;
 		transition-timing-function: ease-out;
 	}
@@ -140,9 +148,19 @@
 		scale: 1.1;
 	}
 
+	.challenge.gray {
+		backdrop-filter: blur(10px) grayscale(100%);
+        color: white
+	}
+
 	.challenge-icon {
 		position: absolute;
+		inset: 0;
 		filter: drop-shadow(5px 5px 5px #000);
+	}
+
+	.challenge-icon.gray {
+		filter: grayscale(100%);
 	}
 
 	.challenge > .name {
@@ -198,4 +216,8 @@
 
 		/* border: solid black 2px; */
 	}
+
+    .isolated {
+        scale: 2;
+    }
 </style>
