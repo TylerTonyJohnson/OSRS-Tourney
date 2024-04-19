@@ -25,6 +25,10 @@ function subscribe(store, ...callbacks) {
   const unsub = store.subscribe(...callbacks);
   return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
 }
+function set_store_value(store, ret, value) {
+  store.set(value);
+  return ret;
+}
 function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
   return new CustomEvent(type, { detail, bubbles, cancelable });
 }
@@ -154,8 +158,9 @@ export {
   escape as e,
   add_attribute as f,
   getContext as g,
-  safe_not_equal as h,
-  is_function as i,
+  set_store_value as h,
+  safe_not_equal as i,
+  is_function as j,
   missing_component as m,
   noop as n,
   run_all as r,

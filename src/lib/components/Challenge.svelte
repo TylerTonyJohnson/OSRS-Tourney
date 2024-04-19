@@ -1,19 +1,22 @@
 <script>
-	import { rules, teams, completions, tournament, selectedTeam, isolatedTeam, messages } from '../stores';
-	import { scale } from 'svelte/transition';
+	import { fade, scale } from 'svelte/transition';
 	import { supabase } from '../supabaseClient.js';
-	export let challenge;
-	export let currentTouchedChallenges;
+	import {
+		rules,
+		teams,
+		completions,
+		tournament,
+		selectedTeam,
+		isolatedTeam,
+		messages,
+		isEditable
+	} from '../stores';
 
-	const outerThreshold = 8;
-	const innerThreshold = 16;
+	export let challenge;
+	export let isActive = false;
 
 	const decrement = 1;
 	const maxDecrement = 2;
-
-	const outerRingIndeces = [1, 2, 3, 4, 5, 6, 10, 11, 15, 16, 20, 21, 22, 23, 24, 25];
-	const innerRingIndeces = [7, 8, 9, 12, 13, 14, 17, 18, 19];
-	const coreIndeces = [13];
 
 	$: currentCompletions = $completions.filter(
 		(completion) => completion.challenge === challenge.id
@@ -21,12 +24,17 @@
 
 	$: isGray = currentCompletions.length >= $rules.maxTeams;
 
-	$: points = challenge.points - Math.min(currentCompletions.length, maxDecrement) * decrement;
+	$: points =
+		challenge.points -
+		(challenge.type === 'main' ? Math.min(currentCompletions.length, maxDecrement) : 0) * decrement;
 
 	function completeChallenge() {
+		if (!$isEditable) return;
 		const message = {
-			type: 'notification',
-			text: `Clan ${$selectedTeam.name} completed the challenge ${challenge.name}`
+			tournament: $tournament.id,
+			text: `Completed the challenge ${challenge.name}`,
+			type: 'completion',
+			sender: $selectedTeam.name
 		};
 
 		if (currentCompletions.some((completion) => completion.team === $selectedTeam.id)) {
@@ -41,24 +49,24 @@
 	}
 
 	async function addCompletion(team) {
-		// console.log('adding team');
-		// console.log(challenge, team);
+		if (!$isEditable) return;
 		const { error } = await supabase.from('completions').insert({
-			tournament: $tournament,
+			tournament: $tournament.id,
 			challenge: challenge.id,
 			team: team.id
 		});
 
 		if (error) {
-			console.error('Error updating challenge', error);
+			console.error('Error adding challenge', error);
 			return {
 				status: 500,
-				error: 'Could not update challenge'
+				error: 'Could not add challenge'
 			};
 		}
 	}
 
 	async function removeCompletion(team) {
+		if (!$isEditable) return;
 		// console.log('removing team');
 
 		const { error } = await supabase
@@ -68,89 +76,155 @@
 			.eq('challenge', challenge.id);
 
 		if (error) {
-			console.error('Error updating completion', error);
+			console.error('Error remove completion', error);
 			return {
 				status: 500,
-				error: 'Could not update completion'
+				error: 'Could not remove completion'
 			};
 		}
 	}
 
-	function addMessage(message) {
+	async function addMessage(message) {
+		if (!$isEditable) return;
 		if ($messages.includes(message)) return;
-		$messages = [...$messages, message];
+
+		const { error } = await supabase.from('messages').insert(message);
+
+		if (error) {
+			console.error('Error adding message', error);
+			return {
+				status: 500,
+				error: 'Could not add message'
+			};
+		}
 	}
 
-	function removeMessage(message) {
-		$messages = $messages.filter((existingMessage) => existingMessage.text !== message.text);
+	async function removeMessage(message) {
+		if (!$isEditable) return;
+
+		const { error } = await supabase.from('messages').delete().eq('text', message.text);
+
+		if (error) {
+			console.error('Error removing message', error);
+			return {
+				status: 500,
+				error: 'Could not remove message'
+			};
+		}
 	}
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div
+<button
 	class="challenge"
 	on:click={() => completeChallenge(challenge)}
-	style="order: {challenge.order}; border-image: url('images/interface/Message Border.png') 8 / 4px repeat;"
-	class:hidden={(innerRingIndeces.includes(challenge.order) &&
-		currentTouchedChallenges < outerThreshold) ||
-		(coreIndeces.includes(challenge.order) && currentTouchedChallenges < innerThreshold)}
+	style="order: {challenge.order};"
+	class:active={isActive}
 	in:scale
 	class:gray={isGray}
+	class:editable={$isEditable}
 >
-	<!-- svelte-ignore a11y-missing-attribute -->
-	<img
-		class="challenge-icon"
-		src="images/challenge-icons/{challenge.name}.png"
-		class:gray={isGray}
-	/>
-	<div class="name">{challenge.name}</div>
-	<div class="points">{points}</div>
-	<div class="completions">
-		{#each currentCompletions as completion}
-			{@const teamName = $teams.find((team) => team.id === completion.team).name}
-			<div class="completion" transition:scale>
-				<!-- svelte-ignore a11y-missing-attribute -->
-				<img class="icon" src="images/interface/Banner {teamName}.png" />
+	{#if isActive}
+		<div
+			class="face front"
+			style="border-image: url('images/interface/Message Border.png') 8 / 4px repeat;"
+			out:fade={{ delay: 200 }}
+		>
+			<!-- svelte-ignore a11y-missing-attribute -->
+			<img
+				class="challenge-icon"
+				src="images/challenge-icons/{challenge.name}.png"
+				class:gray={isGray}
+			/>
+
+			<div class="name">{challenge.name}</div>
+			<div class="points">{points}</div>
+			<div class="completions">
+				{#each currentCompletions as completion}
+					{@const teamName = $teams.find((team) => team.id === completion.team).name}
+					<div class="completion" transition:scale>
+						<!-- svelte-ignore a11y-missing-attribute -->
+						<img class="icon" src="images/interface/Banner {teamName}.png" />
+					</div>
+				{/each}
 			</div>
-		{/each}
-	</div>
-</div>
+		</div>
+	{:else}
+		<div
+			class="face back"
+			style="border-image: url('images/interface/Message Border.png') 8 / 4px repeat;"
+			out:fade={{ delay: 200 }}
+		>
+			{#if challenge.order === 13}
+				<img class="icon blur" src="images/challenge-icons/Hidden 4.png" alt="Hidden" />
+			{:else}
+				<img class="icon blur" src="images/challenge-icons/Hidden 3.png" alt="Hidden" />
+			{/if}
+			<!-- <div class="points">?</div> -->
+		</div>
+	{/if}
+</button>
 
 <style>
 	.challenge {
 		position: relative;
 		width: 100px;
 		height: 100px;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		padding: 0.25rem;
-		align-items: center;
-		/* background-color: #0006; */
-		backdrop-filter: blur(10px);
-		/* box-shadow: 4px 4px 10px 10px #0004;	 */
-		/* border: solid black 2px; */
-		/* overflow:hidden; */
+		transform-style: preserve-3d;
+		transition:
+			scale 0.15s ease-out,
+			rotate 0.25s ease-out,
+			background-color 0.15s ease-out;
+
 		font-size: medium;
 		color: yellow;
 		text-shadow: 1px 1px 0px black;
 		text-align: center;
 		box-shadow: 0px 0px 10px 10px #0004;
-		/* filter: blur(4px); */
-		transition-property: scale, background-color, backdrop-filter;
+		/* backdrop-filter: blur(10px); */
+
+		transition-property: scale, background-color, backdrop-filter, transform;
 		transition-duration: 0.15s;
 		transition-timing-function: ease-out;
+		/* padding: 0.25rem; */
 	}
 
-	.challenge:hover {
-		background-color: black;
+	.face {
+		position: absolute;
+		inset: 0;
+		padding: 0.25rem;
+		backface-visibility: hidden;
+
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.front {
+		backdrop-filter: blur(10px);
+	}
+
+	.back {
+		transform: rotateY(180deg);
+		/* background-color: #0009; */
+		background-image: radial-gradient(transparent, black);
+		/* filter: grayscale(100%); */
+	}
+
+	.challenge:not(.editable) {
+		cursor: inherit;
+	}
+
+	.challenge:hover.active.editable {
+		background-color: teal;
 		scale: 1.1;
 	}
 
 	.challenge.gray {
 		backdrop-filter: blur(10px) grayscale(100%);
-        color: white
+		color: white;
 	}
 
 	.challenge-icon {
@@ -163,8 +237,9 @@
 		filter: grayscale(100%);
 	}
 
-	.challenge > .name {
+	.face > .name {
 		position: absolute;
+		margin: 0.25rem auto;
 		/* background-color: teal; */
 		left: 50%;
 		top: 0%;
@@ -172,7 +247,7 @@
 		width: 100%;
 	}
 
-	.challenge > .points {
+	.face > .points {
 		position: absolute;
 		/* aspect-ratio: 1 / 1; */
 		background: radial-gradient(black 20%, transparent 75%);
@@ -210,14 +285,20 @@
 		/* background-color: black; */
 	}
 
-	.hidden {
-		visibility: hidden;
+	.challenge:not(.active) {
+		/* visibility: hidden; */
+		transform: rotateY(180deg);
+		/* backface-visibility: hidden; */
 		/* filter: blur(20px); */
 
 		/* border: solid black 2px; */
 	}
 
-    .isolated {
-        scale: 2;
-    }
+	.blur {
+		/* filter: blur(1px); */
+	}
+
+	.isolated {
+		scale: 2;
+	}
 </style>

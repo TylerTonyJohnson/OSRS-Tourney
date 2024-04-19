@@ -7,7 +7,7 @@
 		isolatedTeam,
 		completions,
 		scores,
-		winningTeam
+		isEditable
 	} from '../stores.js';
 	import Healthbar from './Healthbar.svelte';
 
@@ -18,15 +18,15 @@
 
 	$: isWinning = $scores[0].points === currentHealth && currentHealth > 0;
 
-	$: console.log(isWinning);
-
 	function selectTeam() {
+		if (!$isEditable) return;
 		// console.log('selecting team');
 		$selectedTeam = team;
 		$isolatedTeam = null;
 	}
 
 	function isolateTeam() {
+		if (!$isEditable) return;
 		console.log('isolating team');
 		$isolatedTeam = team;
 	}
@@ -34,12 +34,14 @@
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div
+<button
 	class="team"
 	class:selected={team === $selectedTeam}
 	on:click={selectTeam}
 	on:dblclick={isolateTeam}
 	in:fly={{ x: -100, duration: 300 }}
+	class:editable={$isEditable}
+	disabled={!$isEditable}
 >
 	<div class="fade"></div>
 	<div
@@ -56,7 +58,7 @@
 			<img class="crown" src="images/Yellow Hat.png" alt="Crown" />
 		</div>
 	{/if}
-</div>
+</button>
 
 <style>
 	.team {
@@ -90,7 +92,11 @@
 		margin-right: auto;
 	}
 
-	.team:hover {
+	.team:not(.editable) {
+		cursor: inherit;
+	}
+
+	.team:hover.editable {
 		--highlight: teal;
 		/* background-image: linear-gradient(to right, transparent, white); */
 		scale: 1.1;
