@@ -124,6 +124,7 @@
 	in:scale
 	class:gray={isGray}
 	class:editable={$isEditable}
+	disabled={!$isEditable || !isActive}
 >
 	{#if isActive}
 		<div
@@ -213,7 +214,7 @@
 		/* filter: grayscale(100%); */
 	}
 
-	.challenge:not(.editable) {
+	.challenge:not(.editable), .challenge:not(.active) {
 		cursor: inherit;
 	}
 
