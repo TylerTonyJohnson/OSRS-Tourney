@@ -100,6 +100,7 @@
 			.then(() => getChallengeData())
 			.then(() => getCompletionData())
 			.then(() => getMessageData())
+			// .then(() => getImageData())
 			.then(() => {
 				styleScrollbar();
 
@@ -379,6 +380,19 @@
 		$messages = data ?? [];
 	}
 
+	async function getImageData() {
+		const { data, error } = await supabase.storage.from('Challenge Icons').download('images');
+		if (error) {
+			console.error('Error fetching images', error);
+			return {
+				status: 500,
+				error: 'Could not fetch images'
+			};
+		} else {
+			console.log('data', data);
+		}
+	}
+
 	async function addMessage(message) {
 		if (!$isEditable) return;
 		if ($messages.find((existingMessage) => message.text === existingMessage.text)) return;
@@ -464,11 +478,13 @@
 			<!-- <div class="label">MAIN CHALLENGES</div> -->
 			<div class="challenges">
 				{#each $challenges.filter((challenge) => challenge.type === 'main') as challenge (challenge.order)}
-					{@const isActive = $tournament.isRevealed &&
+					{@const isActive =
+						$tournament.isRevealed &&
 						(outerRingIndeces.includes(challenge.order) ||
-						(innerRingIndeces.includes(challenge.order) &&
-							currentTouchedChallenges >= outerThreshold) ||
-						(coreIndeces.includes(challenge.order) && currentTouchedChallenges >= innerThreshold))}
+							(innerRingIndeces.includes(challenge.order) &&
+								currentTouchedChallenges >= outerThreshold) ||
+							(coreIndeces.includes(challenge.order) &&
+								currentTouchedChallenges >= innerThreshold))}
 					<Challenge {challenge} {isActive} />
 				{/each}
 			</div>
