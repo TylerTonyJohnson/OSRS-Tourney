@@ -1,10 +1,10 @@
 {
-	"runtime": "nodejs18.x",
+	"runtime": "nodejs20.x",
 	"handler": "..\\..\\..\\Dev\\OSRS-Tourney\\.svelte-kit\\vercel-tmp\\index.js",
 	"launcherType": "Nodejs",
 	"experimentalResponseStreaming": true,
 	"framework": {
 		"slug": "sveltekit",
-		"version": "2.5.5"
+		"version": "2.5.6"
 	}
 }
