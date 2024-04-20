@@ -17,7 +17,8 @@
 
 	let music = new Sound('/music/Inferno.ogg');
 
-	const secretWord = 'helmet';
+	const secretWord = 'Tyler';
+
 
 	function reset() {
 		$isResetting = true;
