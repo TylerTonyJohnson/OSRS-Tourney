@@ -17,9 +17,6 @@
 
 	let music = new Sound('/music/Inferno.ogg');
 
-	const secretWord = 'Tyler';
-
-
 	function reset() {
 		$isResetting = true;
 	}
@@ -79,16 +76,16 @@
 				console.log('focusing');
 				inputElement.focus();
 				break;
-			case input === secretWord:
+			case input === $tournament.secret:
 				console.log('entering');
 				$isEditable = true;
-				localStorage.setItem('tournKey', JSON.stringify($tournament.id));
+				localStorage.setItem('tournKey', JSON.stringify($tournament.secret));
 				break;
-			case input !== secretWord && $isEditable === true:
+			case input !== $tournament.secret && $isEditable === true:
 				console.log('something here');
 				addMessage({ sender: 'Fensail', text: input, tournament: $tournament.id, type: 'admin' });
 				break;
-			case input !== secretWord && $isEditable === false:
+			case input !== $tournament.secret && $isEditable === false:
 				console.log('nothing here');
 				break;
 		}

@@ -104,7 +104,7 @@
 			.then(() => {
 				styleScrollbar();
 
-				if (JSON.parse(localStorage.getItem('tournKey')) === $tournament.id) {
+				if (JSON.parse(localStorage.getItem('tournKey')) === $tournament.secret) {
 					$isEditable = true;
 				} else {
 					$isEditable = false;
