@@ -27,6 +27,7 @@
 
 		margin-left: auto;
 		grid-area: healthbar;
+		/* background-color: teal; */
 	}
 
 	.empty-orb,

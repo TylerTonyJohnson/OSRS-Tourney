@@ -210,6 +210,10 @@
 							console.log('old', payload.old);
 							$teams = $teams.filter((journalData) => journalData.id !== payload.old.id);
 							break;
+						case 'UPDATE':
+							console.log('old', payload.old);
+							$teams = payload.new;
+							break;
 					}
 				}
 			)
@@ -467,8 +471,8 @@
 		</div> -->
 
 		<!-- TEAMS -->
+		<div class="team-name">TEAMS</div>
 		<div class="teams">
-			<div class="label">TEAMS</div>
 			{#each $teams as team (team.id)}
 				<Team {team} {maxHealth} />
 			{/each}
@@ -509,11 +513,11 @@
 		min-height: 100vh;
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
-		grid-template-rows: auto auto auto;
+		grid-template-rows: auto auto 1fr;
 		grid-template-areas:
-			'.     title      settings'
-			'teams challenges bonus'
-			'.     messages   .';
+			'team-name  title      settings'
+			'teams 		challenges bonus'
+			'.     		messages   .';
 
 		background-size: cover;
 		background-blend-mode: saturation;
@@ -534,6 +538,7 @@
 	.titles {
 		position: relative;
 		grid-area: title;
+		margin: 1rem auto;
 	}
 
 	.title {
@@ -542,6 +547,7 @@
 		font-size: 5rem;
 		color: yellow;
 		font-weight: bolder;
+		/* margin: 1rem; */
 		/* text-shadow: 0px 0px 50px yellow; */
 	}
 
@@ -562,7 +568,7 @@
 		position: absolute;
 		font-size: 2rem;
 		left: 50%;
-		top: 75%;
+		top: 90%;
 		translate: -50% 0%;
 	}
 
@@ -578,7 +584,8 @@
 		}
 	}
 
-	.label {
+	.label,
+	.team-name {
 		/* font-family: 'Earth Theory', sans-serif; */
 		/* font-family: 'Metroid-Prime-Font', sans-serif; */
 		font-family: 'Runescape', sans-serif;
@@ -590,6 +597,12 @@
 		max-width: 240px;
 		/* width: 100%; */
 		/* width: 14rem; */
+	}
+
+	.team-name {
+		width: 240px;
+		grid-area: team-name;
+		margin: auto 0 0 auto;
 	}
 
 	.settings {
@@ -625,7 +638,7 @@
 	.challenges {
 		display: grid;
 		/* grid-area: challenges; */
-		margin: auto auto;
+		margin: 0 auto auto auto;
 		grid-template-columns: repeat(5, 1fr);
 		grid-template-rows: repeat(5, 1fr);
 		/* grid-auto-rows: min-content;
@@ -657,11 +670,12 @@
 	.teams {
 		display: flex;
 		flex-direction: column;
-		justify-content: start;
+		justify-content: space-between;
 		align-items: end;
-		gap: 1rem;
+		/* gap: 1rem; */
 		grid-area: teams;
 		margin-left: auto;
+		/* height: 100%; */
 		/* background-color: blue; */
 		/* overflow-y: auto; */
 		/* overflow-x: visible; */

@@ -18,6 +18,8 @@
 
 	$: isWinning = $scores[0].points === currentHealth && currentHealth > 0;
 
+	$: simpleName = team.name.replace("'", '');
+
 	function selectTeam() {
 		if (!$isEditable) return;
 		// console.log('selecting team');
@@ -42,16 +44,21 @@
 	in:fly={{ x: -100, duration: 300 }}
 	class:editable={$isEditable}
 	disabled={!$isEditable}
+	style="order: {team.number};"
 >
 	<div class="fade"></div>
 	<div
 		class="border"
 		style="border-image: url('images/interface/Message Border.png') 8 / 8px repeat;"
 	></div>
-	<div class="content">
-		<img class="banner" src="images/interface/Banner {team.name}.png" alt="Asgarnia Banner" />
+	<div class="content" style="background-image: url('images/interface/{simpleName}.png');">
+		<img class="banner" src="images/interface/Banner {team.number}.png" alt="Asgarnia Banner" />
 		<Healthbar {maxHealth} {currentHealth} />
-		<div class="name">{team.name}</div>
+		<div class="name-container">
+			{#each team.name.split(' ') as word}
+				<div class="name">{word}</div>
+			{/each}
+		</div>
 	</div>
 	{#if isWinning}
 		<div class="crown-container" transition:scale>
@@ -68,7 +75,8 @@
 		display: flex;
 
 		width: 240px;
-		height: 90px;
+		/* height: 90px; */
+		height: 116px;
 		background-size: cover;
 		image-rendering: pixelated;
 		/* overflow: hidden; */
@@ -82,14 +90,16 @@
 	.fade {
 		position: absolute;
 		inset: 0;
-		background-image: linear-gradient(to right, transparent, var(--highlight));
+		background-image: linear-gradient(to left, transparent, var(--highlight));
 	}
 
 	.banner {
+		margin: 0 0.5rem;
 		grid-area: banner;
-		height: 100%;
+		height: 50%;
 		image-rendering: auto;
 		margin-right: auto;
+		/* background-color: green; */
 	}
 
 	.team:not(.editable) {
@@ -104,25 +114,53 @@
 
 	.content {
 		position: absolute;
-		inset: 10px;
+		inset: 6px;
 		display: grid;
+		grid-template-columns: auto 1fr;
+		grid-template-rows: auto 1fr;
 		grid-template-areas:
 			'banner healthbar'
 			'banner name';
-		grid-template-rows: 1fr 1fr;
-		align-items: center;
+		background-size: auto 90%;
+		background-repeat: no-repeat;
+		background-position-x: 15%;
+		background-position-y: 80%;
+		/* grid-template-rows: 1fr 1fr; */
+		/* align-items: center; */
+		/* justify-content: space-between; */
+
+		/* background-color: purple; */
+		/* animation: flow 5s linear infinite; */
+	}
+
+	/* @keyframes flow {
+		from {
+			background-position-x: 0%;
+		}
+		to {
+			background-position-x: 100%;
+		}
+	} */
+
+	.name-container {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: end;
+
+		grid-area: name;
+		padding: 0 8px;
+		/* background-color: blue; */
+		/* overflow: hidden; */
 	}
 
 	.name {
-		grid-area: name;
 		color: white;
-		/* margin-left: auto; */
-		margin-right: 4px;
 		text-align: end;
 		font-size: 32px;
-		/* letter-spacing: 1px; */
 		text-shadow: 2px 2px black;
 		font-weight: lighter;
+		/* border: 1px blue solid; */
 	}
 
 	.border {
@@ -138,8 +176,8 @@
 	.crown-container {
 		position: absolute;
 		height: 40%;
-		right: 5%;
-		top: -18%;
+		right: 1%;
+		top: -22%;
 		/* background-color: pink; */
 	}
 

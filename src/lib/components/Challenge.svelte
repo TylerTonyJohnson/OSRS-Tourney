@@ -143,10 +143,10 @@
 			<div class="points">{points}</div>
 			<div class="completions">
 				{#each currentCompletions as completion}
-					{@const teamName = $teams.find((team) => team.id === completion.team).name}
+					{@const teamNumber = $teams.find((team) => team.id === completion.team).number}
 					<div class="completion" transition:scale>
 						<!-- svelte-ignore a11y-missing-attribute -->
-						<img class="icon" src="images/interface/Banner {teamName}.png" />
+						<img class="icon" src="images/interface/Banner {teamNumber}.png" />
 					</div>
 				{/each}
 			</div>
@@ -268,13 +268,18 @@
 		grid-template-columns: repeat(4, 1fr);
 		display: grid;
 		bottom: 0;
+		/* background-color: green; */
+		/* gap: 0.5rem; */
 	}
 
 	.completion {
+		padding: 4px;
 		position: relative;
-		/* width: 10px;
-		height: 10px; */
-		aspect-ratio: 1 / 1;
+		/* width: 25%; */
+		/* height: 10px; */
+		/* height: 1rem; */
+		
+		/* aspect-ratio: 1 / 1; */
 		/* background-color: yellow; */
 	}
 
