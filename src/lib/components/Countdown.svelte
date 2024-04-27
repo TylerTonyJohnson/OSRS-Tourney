@@ -22,9 +22,9 @@
 					timeLeft = Math.abs(timeNow - new Date($tournament.startTime));
                     removeMessage(completeMessage);
 					break;
-				case timeNow > new Date($tournament.startTime) && timeNow < new Date($tournament.endTime):
+				case (timeNow > new Date($tournament.startTime)) && (timeNow < new Date($tournament.endTime)):
 					timingMessage = 'To End';
-					timeLeft = Math.abs(timeNow - new Date($tournament.startTime));
+					timeLeft = Math.abs(timeNow - new Date($tournament.endTime));
                     removeMessage(completeMessage);
 					break;
 				case timeNow >= new Date($tournament.endTime):
